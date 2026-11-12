@@ -1,0 +1,260 @@
+KANJI CARDS: HOW TO EDIT THE APP YOURSELF
+=========================================
+
+This guide shows you how to change buttons, colors, and text, test your changes, and
+publish them. You don't need to install anything except a text editor.
+(It works the same way as Hanzi Cards, so if you've edited that, this will feel familiar.)
+
+Contents
+  1. Setup: editing and previewing
+  2. How the app is organized
+  3. Changing buttons (text, color, size, icons, new buttons)
+  4. Changing colors for the whole app (light and dark mode)
+  5. Other easy edits (What's new, About, review spacing, messages)
+  6. Testing your change (phone size, dark mode)
+  7. Publishing with git (and undoing mistakes)
+  8. Files you shouldn't edit by hand
+  9. Quick reference
+
+
+1. SETUP: EDITING AND PREVIEWING
+--------------------------------
+Editor: use VS Code (free, code.visualstudio.com). File > Open Folder, then choose
+   C:\Users\User1\Downloads\kanji-cards
+
+Preview locally: open a terminal in that folder (in VS Code: Terminal > New Terminal) and run
+   python -m http.server 8000
+Then open http://localhost:8000 in your browser.
+   - Every time you save index.html, refresh the page to see the change.
+   - If the change doesn't show up, do a hard refresh: Ctrl + Shift + R (Cmd + Shift + R on a Mac).
+   - Opening index.html by double-clicking it won't fully work, because the dictionary won't load.
+   - To stop the server, click in the terminal and press Ctrl + C.
+   - If Hanzi Cards' server is already using port 8000, use another number: python -m http.server 8001
+
+
+2. HOW THE APP IS ORGANIZED
+---------------------------
+Almost everything is in ONE file: index.html. It has three parts, from top to bottom:
+
+   <style> ... </style>      CSS: how things LOOK (colors, sizes, spacing)
+   <body> ... HTML ...       the things ON the page (buttons, text, sections)
+   <script> ... </script>    JavaScript: what things DO when you click them
+
+How to find something: press Ctrl + F in VS Code and search for the words you see on
+screen, for example "Quick search". You'll land on the button in the HTML. Line numbers
+change as the file grows, so search for words, not line numbers.
+
+The JavaScript is split into labeled sections. Search for these headings:
+   /* ================= kana & rōmaji =================         kana <-> rōmaji conversion
+   /* ================= beats & pitch accent =================  pitch lines and colors, furigana
+   /* ================= meanings & word types =================  "る-verb", "な-adjective" labels
+   /* ================= study =================                flashcards, grading
+   /* ================= spaced repetition =================    review spacing rules
+   /* ================= dictionary (JMdict + KANJIDIC2) ======  looking words up, the "which word?" check
+   /* ================= quick search =================
+   /* ================= quick write =================
+   /* ================= instructor mode =================
+   /* ================= what's new =================
+   /* ================= about (the ？ button) =================
+
+
+3. CHANGING BUTTONS
+-------------------
+Every button looks like this in the HTML:
+
+   <button class="btn primary" id="knowBtn" ...>I know it</button>
+            \_______________/   \_________/      \_______/
+             how it looks        its name        the text you see
+             (CSS classes)       (for JS/CSS)
+
+3a. Change a button's TEXT
+    Search for the text (e.g. "I know it") and change only the words between > and <.
+    Example:
+       before:  ...>I know it</button>
+       after:   ...>Got it!</button>
+    Don't change the id="..." part. The JavaScript uses it to find the button.
+
+3b. Change how a button LOOKS by swapping its class
+    These ready-made looks are defined in the CSS (search ".btn.primary"):
+
+       btn                plain: white/raised background with a thin border
+       btn primary        solid dark (ink) background, light text
+       btn seal-btn       solid red background (like "Hear it")
+       btn ghost          no background or border until you hover
+       btn danger         red text (like "Don't know it")
+       btn rail-instructor   the darkest fill (the Instructor mode button)
+
+    Example: make Quick search dark like Instructor mode. Find
+       <button class="btn rail-search" id="qsOpen" ...>
+    and add rail-instructor:
+       <button class="btn rail-search rail-instructor" id="qsOpen" ...>
+
+3c. Change a button's COLOR, SIZE or SHAPE with your own style
+    The base style for all buttons is in the CSS:
+       .btn { border: 1px solid var(--line); background: var(--raised); border-radius: 6px;
+              padding: 7px 12px; ... }
+
+    What each setting does:
+       background     fill color            e.g. background: #2E5FB3;
+       color          text color            e.g. color: white;
+       border-color   outline color
+       border-radius  roundness             6px = slightly rounded, 999px = pill shaped
+       padding        inner space           first number = top/bottom, second = left/right
+       font-size      text size             e.g. font-size: 16px;
+       font-weight    boldness              400 = normal, 600 = bold
+
+    To change ONE button without touching the others, add a rule for its id at the END
+    of the CSS (just before </style>). # means "the element with this id":
+
+       #knowBtn { background: #2C7447; border-color: #2C7447; color: white; }
+
+    To change ALL buttons, edit the .btn rule itself.
+
+    Colors can be:
+       hex codes            #B83A2E   (look one up: search "color picker" on Google)
+       names                white, black, crimson, navy
+       the app's own colors var(--seal), var(--ink), ... (see section 4). These switch
+                            automatically in dark mode, so they're usually the best choice.
+
+3d. Remove or add an ICON
+    Icons are <svg>...</svg> blocks inside the button, before the text.
+    - Remove: delete everything from <svg to </svg> (keep the text).
+    - Add: copy an <svg>...</svg> from another button and paste it before the text.
+      Free icons: lucide.dev (click an icon, "Copy SVG"). Give it the same size as ours:
+      viewBox="0 0 16 16" works best. If the pasted icon has width="24" height="24",
+      you can leave them, because the CSS rule ".btn svg" resizes it to 16 x 16.
+
+3e. Add a NEW button that does something
+    Step 1, HTML: put the button where you want it, with a unique id:
+       <button class="btn" id="myBtn" type="button">Say hi</button>
+    Step 2, JavaScript: near the other click handlers (search "/* ================= events"),
+    add one line:
+       $("#myBtn").addEventListener("click", () => toast("Hi!"));
+    $("#myBtn") finds the button, and toast("...") shows a small message at the bottom.
+    The functions the app's existing buttons call are also available, for example:
+       setView("search")   open Quick search      setView("write")  open Quick write
+       setView("teach")    open Instructor mode   setView("study")  open the Study tab
+       speak("こんにちは")    say something out loud (kana is safest: the voice can't misread it)
+
+
+4. CHANGING COLORS FOR THE WHOLE APP
+------------------------------------
+The app's colors are defined ONCE at the top of the CSS as "tokens", and everything uses
+them. Search for  --paper: #EEECE6  to find the light-mode list:
+
+   --paper    page background            --ink      main text, dark buttons
+   --surface  sidebar / panels           --muted    gray secondary text
+   --raised   cards, inputs, buttons     --line     borders
+   --seal     the red accent             --ok       green ("known")
+   --jade     the ？ help button          --strong   Instructor mode button fill
+   --grid     the dashed guide lines in the stroke-order boxes
+   --p0 ... --p3   pitch accent colors: 0 heiban (blue), 1 atamadaka (red),
+                   2 nakadaka (orange), 3 odaka (green)
+
+IMPORTANT: dark mode has its own copy of these colors, written TWICE right below the
+light ones. One is for "follow my device's setting", the other for forced dark mode.
+If you change a color for dark mode, change it in BOTH places (search the old hex code
+to find both).
+
+Example: make the red accent blue everywhere in light mode:
+   --seal: #B83A2E;   becomes   --seal: #2E5FB3;
+
+The Japanese font is set by --f-jp (Klee One, a textbook-style font that shows characters
+the way they're written by hand). To use a printed-style font instead, change it to
+   --f-jp: "Noto Serif JP", "Hiragino Mincho ProN", "Yu Mincho", serif;
+
+
+5. OTHER EASY EDITS
+-------------------
+What's new popup (search "const WHATS_NEW"):
+   version: "1.0",     change to "1.1" for your next update. Everyone sees it once.
+   items: [ ["Title", "Description"], ... ],   one line per new feature.
+   foot: "..."         the closing line.
+
+About / ？ popup (search "const ABOUT"): the same idea. Edit the text in quotes, and
+add or remove ["Step title", "Step text"] lines. Keep the credits paragraph under it in
+the HTML (search "Dictionary data:"): the dictionary's licence asks for it.
+
+Example deck (search "const SAMPLE"): the "First words" cards a new visitor sees. Each line is
+   ["word", "also written", "reading", "pitch", "meaning", "word type"]
+
+Spaced repetition timing (search "const LADDER_DAYS"):
+   const LADDER_DAYS = [1, 3, 7, 14];   days until the next review after each "I know it".
+                                        Add a number to require one more confirmation,
+                                        e.g. [1, 3, 7, 14, 30].
+   const GAP = { dont: 3, learn: 5, again: 6 };   how many cards before a missed card
+                                                  comes back in the same session.
+
+Word type labels (search "const POS"): the text after "Type:" on the meaning side, e.g.
+   v1: "る-verb (ichidan)"   change it to   v1: "ru-verb"
+
+Small messages (toasts): search for  toast("  to find every pop-up message and change
+its words.
+
+Rules when editing text inside JavaScript:
+   - Keep the quote marks around text: "like this".
+   - If your text contains a double quote, use a curly one (”) or write \" instead.
+   - Keep the commas between items in a list.
+   - If the page goes blank after a change, you broke the JavaScript: press F12, open the
+     Console tab, and read the red error. It tells you the line number. Usually it's a
+     missing quote, comma or bracket.
+
+
+6. TESTING YOUR CHANGE
+----------------------
+After saving, refresh http://localhost:8000 and check:
+   - Phone size: press F12, then Ctrl + Shift + M (device toolbar), and pick "iPhone 12" at the top.
+   - Dark mode: in F12 press Ctrl + Shift + P, type "dark", and choose
+     "Emulate CSS prefers-color-scheme: dark".
+   - Errors: F12 > Console tab. It should have no red messages.
+   - Start fresh like a new user: F12 > Application > Local storage > right-click > Clear.
+     (This only clears your test browser's saved cards. Kanji Cards' keys start with "kjc.")
+
+
+7. PUBLISHING WITH GIT (AND UNDOING MISTAKES)
+---------------------------------------------
+Run these in the terminal, inside the project folder.
+
+See what you changed:
+   git status                  which files changed
+   git diff                    the exact lines changed (press q to exit)
+
+Throw away your edits to a file (go back to the last saved version):
+   git checkout -- index.html
+
+Save and publish:
+   git add index.html
+   git commit -m "Short note about what you changed"
+   git pull                    get any changes made on GitHub first
+   git push                    publish. The live site updates in 1-2 minutes.
+
+Undo a change that's already published:
+   git log --oneline           find the commit's code, e.g. 2a1b103
+   git revert 2a1b103          makes a new commit that undoes it
+   git push
+
+
+8. FILES YOU SHOULDN'T EDIT BY HAND
+-----------------------------------
+   data/dict.tsv, data/kanji.tsv, data/strokes/   dictionary, kanji and stroke data,
+                                                  generated by scripts/build_data.py
+   data/ocr/, vendor/ocr/                         the photo-reading engine, generated by
+                                                  scripts/build_ocr.sh
+   .sources/                                      downloads used by build_data.py (never uploaded)
+To change the photo reader, edit scripts/ocr/worker.js and run:  sh scripts/build_ocr.sh
+To get a newer dictionary, run:  python scripts/build_data.py   (needs only Python)
+
+
+9. QUICK REFERENCE
+------------------
+   Find a button              Ctrl + F, search its text
+   Change its words           edit the text between > and <
+   Change its look            swap classes: primary, seal-btn, ghost, danger, rail-instructor
+   Restyle one button         add  #theId { ... }  at the end of the CSS
+   Change app colors          edit the --tokens at the top (both dark-mode copies too)
+   Preview                    python -m http.server 8000, then http://localhost:8000
+   Publish                    git add index.html, git commit -m "...", git pull, git push
+   Undo after publishing      git revert <code>, git push
+
+Stuck? Ask Claude: describe what you want ("make the I know it button green") and it
+can make the change or explain which lines to edit.

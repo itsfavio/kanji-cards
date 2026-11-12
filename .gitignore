@@ -1,0 +1,7 @@
+node_modules/
+package-lock.json
+.DS_Store
+.sources/
+photo_testing/
+.ipynb_checkpoints/
+__pycache__/
